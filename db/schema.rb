@@ -10,9 +10,22 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_26_002633) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_004118) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "api_credentials", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "last_used_at"
+    t.bigint "merchant_id", null: false
+    t.string "name", null: false
+    t.datetime "revoked_at"
+    t.string "token_digest", null: false
+    t.string "token_last_four", null: false
+    t.datetime "updated_at", null: false
+    t.index ["merchant_id"], name: "index_api_credentials_on_merchant_id"
+    t.index ["token_digest"], name: "index_api_credentials_on_token_digest", unique: true
+  end
 
   create_table "merchants", force: :cascade do |t|
     t.datetime "created_at", null: false
@@ -69,6 +82,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_002633) do
     t.index ["merchant_id"], name: "index_users_on_merchant_id"
   end
 
+  add_foreign_key "api_credentials", "merchants"
   add_foreign_key "orders", "merchants"
   add_foreign_key "payments", "merchants"
   add_foreign_key "payments", "orders"

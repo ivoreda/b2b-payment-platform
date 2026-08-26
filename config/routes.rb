@@ -13,6 +13,12 @@ Rails.application.routes.draw do
   post "login", to: "sessions#create"
   delete "logout", to: "sessions#destroy"
 
+  namespace :api, defaults: { format: :json } do
+    namespace :v1 do
+      resources :orders, only: %i[index show create], param: :reference
+    end
+  end
+
   # Defines the root path route ("/")
   root "home#index"
 end
