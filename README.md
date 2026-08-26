@@ -43,6 +43,26 @@ bin/ci              # the full CI gate: setup, rubocop, bundler-audit, brakeman,
 
 `bin/ci` is what actually runs in GitHub Actions on every push/PR — if it's green locally, CI will be green.
 
+## Deploying (Railway)
+
+The repo's `Dockerfile` builds a production image directly — `railway.json` pins Railway to build from it rather
+than guessing via Nixpacks. Add a Postgres plugin to the Railway project, then set these variables on the app
+service:
+
+| Variable | Value | Why |
+|---|---|---|
+| `RAILS_MASTER_KEY` | contents of `config/master.key` | Rails won't boot without it in production |
+| `MOCK_PROVIDER_WEBHOOK_SECRET` | any long random string | app raises at boot if unset in production |
+| `SOLID_QUEUE_IN_PUMA` | `1` | Railway runs one process by default; without this, `bin/rails server` never starts the Solid Queue supervisor, so the async webhook job enqueues but never runs |
+
+`DATABASE_URL` is provided automatically by Railway's Postgres plugin — `config/database.yml` reads it for all four
+logical connections (`primary`/`cache`/`queue`/`cable`), which all share that single Postgres database (Solid
+Queue's tables are `solid_queue_*`-prefixed, so there's no collision with the app's own tables). This intentionally
+departs from the four-separate-databases layout Rails generates by default for a Kamal-style deploy, since Railway
+hands you one Postgres instance, not four.
+
+`bin/docker-entrypoint` runs `db:prepare` on boot, so the schema is created/migrated automatically on first deploy.
+
 ## API reference
 
 All `/api/v1/*` endpoints require `Authorization: Bearer <token>` and return JSON. Every response follows one error
