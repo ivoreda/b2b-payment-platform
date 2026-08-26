@@ -84,23 +84,40 @@ test:
 # Read https://guides.rubyonrails.org/configuring.html#configuring-a-database
 # for a full overview on how database connection configuration can be specified.
 #
-# Single-Postgres-instance layout: primary/cache/queue/cable are still
-# separate logical connections (Solid Queue etc. need that to pick the right
-# one via config.solid_queue.connects_to), but they all resolve to the same
-# physical database via DATABASE_URL - there's no per-database host/user/pass
-# to manage on a PaaS like Railway that hands you one Postgres instance. Solid
-# Queue's tables are all `solid_queue_*`-prefixed, so they coexist safely
-# alongside the app's own tables with no name collisions.
+# Single-Postgres-INSTANCE layout for PaaS deploys (Railway etc.) that hand
+# you one DATABASE_URL and no per-database host/user/pass to manage: primary/
+# cache/queue/cable share the same server/credentials but get distinct
+# database names, derived from DATABASE_URL, on that server. They must NOT
+# all resolve to the identical database - `db:prepare` treats "database
+# already exists" as "already prepared" and skips loading that connection's
+# schema file entirely, which silently leaves Solid Queue's tables missing.
+# (Confirmed by reproducing locally: pointing all four at one URL produced
+# zero solid_queue_* tables even though db:prepare exited 0.) The Postgres
+# role behind DATABASE_URL needs CREATEDB - true for Railway's managed
+# Postgres plugin.
+<%
+  require "uri"
+  base_db_url = URI.parse(ENV.fetch("DATABASE_URL", "postgres://localhost/b2b_payment_platform_build_placeholder"))
+
+  def db_url_for(base, suffix)
+    uri = base.dup
+    uri.path = "#{base.path}_#{suffix}"
+    uri.to_s
+  end
+%>
 production:
   primary: &primary_production
     <<: *default
-    url: <%= ENV["DATABASE_URL"] %>
+    url: <%= base_db_url.to_s %>
   cache:
     <<: *primary_production
+    url: <%= db_url_for(base_db_url, "cache") %>
     migrations_paths: db/cache_migrate
   queue:
     <<: *primary_production
+    url: <%= db_url_for(base_db_url, "queue") %>
     migrations_paths: db/queue_migrate
   cable:
     <<: *primary_production
+    url: <%= db_url_for(base_db_url, "cable") %>
     migrations_paths: db/cable_migrate
