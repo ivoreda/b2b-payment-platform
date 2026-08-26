@@ -1,0 +1,9 @@
+json.reference payment.reference
+json.order_reference payment.order.reference
+json.amount_cents payment.amount_cents
+json.currency payment.currency
+json.status payment.status
+json.provider payment.provider
+json.provider_reference payment.provider_reference
+json.failure_reason payment.failure_reason
+json.created_at payment.created_at

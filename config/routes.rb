@@ -15,7 +15,10 @@ Rails.application.routes.draw do
 
   namespace :api, defaults: { format: :json } do
     namespace :v1 do
-      resources :orders, only: %i[index show create], param: :reference
+      resources :orders, only: %i[index show create], param: :reference do
+        resources :payments, only: :create
+      end
+      resources :payments, only: :show, param: :reference
     end
   end
 
