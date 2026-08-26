@@ -1,5 +1,13 @@
 #!/bin/bash -e
 
+# Thruster (the proxy `bin/thrust` wraps Puma in) listens on HTTP_PORT,
+# defaulting to 80 - it never reads PORT itself. PaaS platforms like Railway
+# inject PORT and healthcheck exactly that port, so without this, Thruster
+# listens on 80 while the platform probes whatever port it assigned,
+# and the healthcheck never succeeds even though the app is fine. Falls
+# back to 80 (Thruster's own default) when PORT isn't set, e.g. Kamal.
+export HTTP_PORT="${PORT:-80}"
+
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
   ./bin/rails db:prepare
