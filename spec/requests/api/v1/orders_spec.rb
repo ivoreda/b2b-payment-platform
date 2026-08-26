@@ -57,7 +57,8 @@ RSpec.describe "API::V1::Orders", type: :request do
       post "/api/v1/orders", params: params, headers: auth_headers, as: :json
 
       expect(response).to have_http_status(:unprocessable_content)
-      expect(response.parsed_body["errors"]).to be_present
+      expect(response.parsed_body["error"]).to eq("Validation failed")
+      expect(response.parsed_body["details"]).to be_present
     end
 
     it "rejects a request with no order param with 400 instead of 500" do

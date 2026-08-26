@@ -18,13 +18,8 @@ module Api
       end
 
       def create
-        @order = current_merchant.orders.new(order_params)
-
-        if @order.save
-          render :show, status: :created
-        else
-          render json: { errors: @order.errors.full_messages }, status: :unprocessable_content
-        end
+        @order = current_merchant.orders.create!(order_params)
+        render :show, status: :created
       end
 
       private

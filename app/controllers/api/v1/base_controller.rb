@@ -5,6 +5,7 @@ module Api
 
       rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
       rescue_from ActionController::ParameterMissing, with: :render_bad_request
+      rescue_from ActiveRecord::RecordInvalid, with: :render_unprocessable
 
       private
 
@@ -37,6 +38,11 @@ module Api
 
       def render_bad_request(exception)
         render json: { error: exception.message }, status: :bad_request
+      end
+
+      def render_unprocessable(exception)
+        render json: { error: "Validation failed", details: exception.record.errors.full_messages },
+               status: :unprocessable_content
       end
     end
   end
