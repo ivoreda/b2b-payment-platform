@@ -13,6 +13,10 @@ Rails.application.routes.draw do
   post "login", to: "sessions#create"
   delete "logout", to: "sessions#destroy"
 
+  namespace :webhooks do
+    post "payment_provider", to: "payment_provider#create"
+  end
+
   namespace :api, defaults: { format: :json } do
     namespace :v1 do
       resources :orders, only: %i[index show create], param: :reference do

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_26_004118) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_010334) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -49,6 +49,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_004118) do
     t.check_constraint "amount_cents > 0", name: "orders_amount_cents_positive"
   end
 
+  create_table "payment_events", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "from_status", null: false
+    t.bigint "payment_id", null: false
+    t.string "source", null: false
+    t.string "to_status", null: false
+    t.bigint "webhook_event_id"
+    t.index ["payment_id"], name: "index_payment_events_on_payment_id"
+    t.index ["webhook_event_id"], name: "index_payment_events_on_webhook_event_id"
+  end
+
   create_table "payments", force: :cascade do |t|
     t.integer "amount_cents", null: false
     t.datetime "created_at", null: false
@@ -82,9 +93,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_004118) do
     t.index ["merchant_id"], name: "index_users_on_merchant_id"
   end
 
+  create_table "webhook_events", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "error_message"
+    t.string "event_type", null: false
+    t.jsonb "payload", default: {}, null: false
+    t.bigint "payment_id"
+    t.string "provider", null: false
+    t.string "provider_event_id", null: false
+    t.boolean "signature_valid", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["payment_id"], name: "index_webhook_events_on_payment_id"
+    t.index ["provider", "provider_event_id"], name: "index_webhook_events_on_provider_and_provider_event_id", unique: true
+  end
+
   add_foreign_key "api_credentials", "merchants"
   add_foreign_key "orders", "merchants"
+  add_foreign_key "payment_events", "payments"
+  add_foreign_key "payment_events", "webhook_events"
   add_foreign_key "payments", "merchants"
   add_foreign_key "payments", "orders"
   add_foreign_key "users", "merchants"
+  add_foreign_key "webhook_events", "payments"
 end

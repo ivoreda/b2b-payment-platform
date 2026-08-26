@@ -98,4 +98,91 @@ RSpec.describe Payment, type: :model do
       expect(Payment.for_merchant(merchant_a)).to contain_exactly(payment_a)
     end
   end
+
+  describe "#mark_processing!" do
+    it "transitions a pending payment to processing and records a PaymentEvent" do
+      payment = create(:payment)
+
+      expect { payment.mark_processing! }.to change { payment.reload.status }.from("pending").to("processing")
+      expect(payment.payment_events.sole).to have_attributes(from_status: "pending", to_status: "processing", source: "webhook")
+    end
+
+    it "is a no-op once the payment has moved past pending" do
+      payment = create(:payment, status: :succeeded)
+
+      expect(payment.mark_processing!).to eq(:noop)
+      expect(payment.payment_events.count).to eq(0)
+    end
+  end
+
+  describe "#mark_succeeded!" do
+    it "transitions a pending payment to succeeded, sets provider_reference, and marks its order paid" do
+      payment = create(:payment)
+
+      payment.mark_succeeded!(provider_reference: "mock_ch_123")
+
+      expect(payment.reload).to have_attributes(status: "succeeded", provider_reference: "mock_ch_123")
+      expect(payment.succeeded_at).to be_present
+      expect(payment.order.reload).to be_paid
+    end
+
+    it "is idempotent when redelivered for an already-succeeded payment" do
+      payment = create(:payment)
+      payment.mark_succeeded!(provider_reference: "mock_ch_123")
+
+      expect {
+        expect(payment.mark_succeeded!(provider_reference: "mock_ch_123")).to eq(:noop)
+      }.not_to change(PaymentEvent, :count)
+    end
+
+    it "raises InvalidTransition rather than overwrite an already-failed payment" do
+      payment = create(:payment)
+      payment.mark_failed!(failure_reason: "card_declined")
+
+      expect {
+        payment.mark_succeeded!(provider_reference: "mock_ch_123")
+      }.to raise_error(Payment::InvalidTransition)
+      expect(payment.reload).to be_failed
+    end
+
+    it "only applies once when called twice back-to-back (concurrency guard)" do
+      payment = create(:payment)
+
+      2.times { payment.mark_succeeded!(provider_reference: "mock_ch_123") }
+
+      expect(payment.payment_events.count).to eq(1)
+    end
+  end
+
+  describe "#mark_failed!" do
+    it "transitions a pending payment to failed, records the reason, and leaves the order retryable" do
+      order = create(:order, status: :awaiting_payment)
+      payment = create(:payment, order: order)
+
+      payment.mark_failed!(failure_reason: "insufficient_funds")
+
+      expect(payment.reload).to have_attributes(status: "failed", failure_reason: "insufficient_funds")
+      expect(payment.failed_at).to be_present
+      expect(order.reload).to be_awaiting_payment
+    end
+
+    it "is idempotent when redelivered for an already-failed payment" do
+      payment = create(:payment)
+      payment.mark_failed!(failure_reason: "insufficient_funds")
+
+      expect {
+        expect(payment.mark_failed!(failure_reason: "insufficient_funds")).to eq(:noop)
+      }.not_to change(PaymentEvent, :count)
+    end
+
+    it "raises InvalidTransition rather than overwrite an already-succeeded payment" do
+      payment = create(:payment)
+      payment.mark_succeeded!(provider_reference: "mock_ch_123")
+
+      expect {
+        payment.mark_failed!(failure_reason: "insufficient_funds")
+      }.to raise_error(Payment::InvalidTransition)
+      expect(payment.reload).to be_succeeded
+    end
+  end
 end
