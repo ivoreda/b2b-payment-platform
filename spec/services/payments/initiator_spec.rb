@@ -15,12 +15,26 @@ RSpec.describe Payments::Initiator do
       expect(order.reload).to be_awaiting_payment
     end
 
+    it "kicks off a simulated charge for a newly created payment" do
+      expect {
+        described_class.call(order: order, idempotency_key: "key-1")
+      }.to have_enqueued_job(MockPaymentProvider::ProcessChargeJob)
+    end
+
     it "returns the same payment for a replayed idempotency key on the same order" do
       first = described_class.call(order: order, idempotency_key: "key-1")
       second = described_class.call(order: order, idempotency_key: "key-1")
 
       expect(second.idempotent_replay).to be true
       expect(second.payment).to eq(first.payment)
+    end
+
+    it "does not kick off a second charge for a replayed idempotency key" do
+      described_class.call(order: order, idempotency_key: "key-1")
+
+      expect {
+        described_class.call(order: order, idempotency_key: "key-1")
+      }.not_to have_enqueued_job(MockPaymentProvider::ProcessChargeJob)
     end
 
     it "allows a retry payment while the order is still awaiting_payment" do

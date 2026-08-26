@@ -24,10 +24,10 @@ module Payments
     end
 
     def call
-      order.with_lock do
+      result = order.with_lock do
         if idempotency_key.present?
           existing = order.merchant.payments.find_by(idempotency_key: idempotency_key)
-          return build_replay_result(existing) if existing
+          break build_replay_result(existing) if existing
         end
 
         raise OrderNotPayable, order.status unless order.pending? || order.awaiting_payment?
@@ -43,6 +43,14 @@ module Payments
 
         Result.new(payment: payment, idempotent_replay: false)
       end
+
+      # Only kick off the (simulated) charge for a genuinely new payment, and
+      # only once the transaction above has actually committed - enqueuing
+      # from inside an open transaction risks the job running before the
+      # row it needs is visible.
+      MockPaymentProvider.charge(result.payment) unless result.idempotent_replay
+
+      result
     rescue ActiveRecord::RecordNotUnique
       build_replay_result(order.merchant.payments.find_by!(idempotency_key: idempotency_key))
     end
