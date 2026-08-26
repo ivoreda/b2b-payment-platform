@@ -26,6 +26,12 @@ Rails.application.routes.draw do
     end
   end
 
+  namespace :dashboard do
+    resources :orders, only: %i[index show], param: :reference do
+      resources :payments, only: :create
+    end
+  end
+
   # Defines the root path route ("/")
-  root "home#index"
+  root "dashboard/orders#index"
 end

@@ -14,4 +14,16 @@ class Order < ApplicationRecord
   validates :customer_email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
 
   scope :for_merchant, ->(merchant) { where(merchant: merchant) }
+
+  # Sorts in Ruby, not SQL, so this stays N+1-safe when `payments` has
+  # already been preloaded (e.g. via includes(:payments) on an index view).
+  def latest_payment
+    payments.max_by(&:created_at)
+  end
+
+  # So url/path helpers (dashboard_order_path(order)) build the opaque
+  # reference into the URL instead of the internal sequential id.
+  def to_param
+    reference
+  end
 end

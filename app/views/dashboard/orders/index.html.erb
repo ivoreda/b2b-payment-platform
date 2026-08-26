@@ -1,0 +1,38 @@
+<% content_for :title, "Orders" %>
+
+<h1>Orders</h1>
+
+<% if @orders.empty? %>
+  <p>No orders yet.</p>
+<% else %>
+  <table>
+    <thead>
+      <tr>
+        <th>Reference</th>
+        <th>Customer</th>
+        <th>Amount</th>
+        <th>Order Status</th>
+        <th>Latest Payment</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @orders.each do |order| %>
+        <tr>
+          <td><%= order.reference %></td>
+          <td><%= order.customer_name %></td>
+          <td><%= money(order.amount_cents, order.currency) %></td>
+          <td><%= status_badge(order.status) %></td>
+          <td>
+            <% if (payment = order.latest_payment) %>
+              <%= status_badge(payment.status) %>
+            <% else %>
+              &mdash;
+            <% end %>
+          </td>
+          <td><%= link_to "View", dashboard_order_path(order) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>

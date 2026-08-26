@@ -8,3 +8,84 @@
  *
  * Consider organizing styles into separate files for maintainability.
  */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  color: #1a1a1a;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1.5rem 3rem;
+}
+
+nav.top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 1.5rem;
+}
+
+nav.top-nav .brand {
+  font-weight: 600;
+}
+
+nav.top-nav .session-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: #777;
+}
+
+.status {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: #eee;
+}
+
+.status-succeeded, .status-paid { background: #d7f5dd; color: #1a7a34; }
+.status-failed { background: #fbdada; color: #a3231f; }
+.status-pending, .status-processing, .status-awaiting_payment { background: #fff3cd; color: #8a6100; }
+.status-cancelled { background: #eee; color: #555; }
+
+.flash {
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.flash-notice { background: #d7f5dd; color: #1a7a34; }
+.flash-alert { background: #fbdada; color: #a3231f; }
+
+.history-list {
+  list-style: none;
+  padding: 0;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+.history-list li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #f2f2f2;
+}

@@ -24,6 +24,16 @@
   </head>
 
   <body>
+    <% if current_user %>
+      <nav class="top-nav">
+        <%= link_to "B2B Payment Platform", dashboard_orders_path, class: "brand" %>
+        <div class="session-info">
+          <span><%= current_merchant.name %> &middot; <%= current_user.email %></span>
+          <%= button_to "Log out", logout_path, method: :delete %>
+        </div>
+      </nav>
+    <% end %>
+
     <% flash.each do |type, message| %>
       <p class="flash flash-<%= type %>"><%= message %></p>
     <% end %>

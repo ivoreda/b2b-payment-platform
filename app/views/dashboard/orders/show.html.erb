@@ -1,0 +1,61 @@
+<% content_for :title, "Order #{@order.reference}" %>
+
+<p><%= link_to "&larr; All orders".html_safe, dashboard_orders_path %></p>
+
+<h1>Order <%= @order.reference %></h1>
+
+<p>
+  <%= @order.customer_name %> &lt;<%= @order.customer_email %>&gt;<br>
+  <%= money(@order.amount_cents, @order.currency) %> &middot; <%= status_badge(@order.status) %>
+</p>
+
+<% if @order.pending? || @order.awaiting_payment? %>
+  <%= button_to "Initiate Payment",
+        dashboard_order_payments_path(@order),
+        params: { idempotency_key: @payment_idempotency_key },
+        method: :post %>
+<% end %>
+
+<h2>Payments</h2>
+<% if @payments.empty? %>
+  <p>No payments initiated yet.</p>
+<% else %>
+  <table>
+    <thead>
+      <tr>
+        <th>Reference</th>
+        <th>Status</th>
+        <th>Provider Reference</th>
+        <th>Failure Reason</th>
+        <th>Initiated</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @payments.each do |payment| %>
+        <tr>
+          <td><%= payment.reference %></td>
+          <td><%= status_badge(payment.status) %></td>
+          <td><%= payment.provider_reference || "&mdash;".html_safe %></td>
+          <td><%= payment.failure_reason || "&mdash;".html_safe %></td>
+          <td><%= payment.created_at.strftime("%b %-d, %Y %H:%M") %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>
+
+<h2>History</h2>
+<% if @payment_events.empty? %>
+  <p>No status changes yet.</p>
+<% else %>
+  <ul class="history-list">
+    <% @payment_events.each do |event| %>
+      <li>
+        <%= event.created_at.strftime("%b %-d, %Y %H:%M:%S") %> &mdash;
+        payment <%= event.payment.reference %>:
+        <%= event.from_status %> &rarr; <%= event.to_status %>
+        (via <%= event.source %>)
+      </li>
+    <% end %>
+  </ul>
+<% end %>
