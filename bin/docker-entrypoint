@@ -4,9 +4,16 @@
 # defaulting to 80 - it never reads PORT itself. PaaS platforms like Railway
 # inject PORT and healthcheck exactly that port, so without this, Thruster
 # listens on 80 while the platform probes whatever port it assigned,
-# and the healthcheck never succeeds even though the app is fine. Falls
-# back to 80 (Thruster's own default) when PORT isn't set, e.g. Kamal.
-export HTTP_PORT="${PORT:-80}"
+# and the healthcheck never succeeds even though the app is fine.
+#
+# The fallback is 8080, not Thruster's own default of 80: the image runs as
+# a non-root user (see USER below in the Dockerfile), and only root can bind
+# a port under 1024 - Thruster silently fails to bind port 80 in that case,
+# which looks identical to a healthcheck/port-mismatch failure from outside
+# (confirmed: Railway's edge returned 502 "Application failed to respond"
+# even with PORT/target port both correctly set to 80). Whatever port is
+# used here must match the platform's configured target port.
+export HTTP_PORT="${PORT:-8080}"
 
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
