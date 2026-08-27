@@ -18,8 +18,14 @@ module Api
       end
 
       def create
-        @order = current_merchant.orders.create!(order_params)
-        render :show, status: :created
+        return render_missing_idempotency_key unless idempotency_key_header
+
+        result = Orders::Creator.call(
+          merchant: current_merchant, idempotency_key: idempotency_key_header, order_params: order_params
+        )
+        @order = result.order
+
+        render :show, status: result.idempotent_replay ? :ok : :created
       end
 
       private

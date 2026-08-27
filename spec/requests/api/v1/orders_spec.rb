@@ -10,8 +10,13 @@ RSpec.describe "API::V1::Orders", type: :request do
       { order: { amount_cents: 5_000, currency: "usd", customer_email: "buyer@example.com", customer_name: "Buyer Co" } }
     end
 
+    def create_order(params: valid_params, idempotency_key: "test-key-1", headers: auth_headers)
+      request_headers = headers.merge("Idempotency-Key" => idempotency_key).compact
+      post "/api/v1/orders", params: params, headers: request_headers, as: :json
+    end
+
     it "creates an order for the authenticated merchant" do
-      post "/api/v1/orders", params: valid_params, headers: auth_headers, as: :json
+      create_order
 
       expect(response).to have_http_status(:created)
       body = response.parsed_body
@@ -22,14 +27,14 @@ RSpec.describe "API::V1::Orders", type: :request do
     end
 
     it "rejects requests without a token" do
-      post "/api/v1/orders", params: valid_params, as: :json
+      create_order(headers: {})
 
       expect(response).to have_http_status(:unauthorized)
       expect(Order.count).to eq(0)
     end
 
     it "rejects requests with an invalid token" do
-      post "/api/v1/orders", params: valid_params, headers: { "Authorization" => "Bearer sk_bogus" }, as: :json
+      create_order(headers: { "Authorization" => "Bearer sk_bogus" })
 
       expect(response).to have_http_status(:unauthorized)
     end
@@ -37,15 +42,34 @@ RSpec.describe "API::V1::Orders", type: :request do
     it "rejects requests with a revoked token" do
       credential.revoke!
 
-      post "/api/v1/orders", params: valid_params, headers: auth_headers, as: :json
+      create_order
 
       expect(response).to have_http_status(:unauthorized)
+    end
+
+    it "requires an Idempotency-Key header" do
+      create_order(idempotency_key: nil)
+
+      expect(response).to have_http_status(:bad_request)
+      expect(Order.count).to eq(0)
+    end
+
+    it "returns the existing order instead of creating a duplicate on key replay" do
+      create_order(idempotency_key: "same-key")
+      first_reference = response.parsed_body["reference"]
+
+      expect {
+        create_order(idempotency_key: "same-key")
+      }.not_to change(Order, :count)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["reference"]).to eq(first_reference)
     end
 
     it "ignores an injected status param instead of honoring it" do
       params = valid_params.deep_merge(order: { status: "paid" })
 
-      post "/api/v1/orders", params: params, headers: auth_headers, as: :json
+      create_order(params: params)
 
       expect(response).to have_http_status(:created)
       expect(response.parsed_body["status"]).to eq("pending")
@@ -54,7 +78,7 @@ RSpec.describe "API::V1::Orders", type: :request do
     it "rejects a non-positive amount" do
       params = valid_params.deep_merge(order: { amount_cents: 0 })
 
-      post "/api/v1/orders", params: params, headers: auth_headers, as: :json
+      create_order(params: params)
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.parsed_body["error"]).to eq("Validation failed")
@@ -62,7 +86,7 @@ RSpec.describe "API::V1::Orders", type: :request do
     end
 
     it "rejects a request with no order param with 400 instead of 500" do
-      post "/api/v1/orders", params: {}, headers: auth_headers, as: :json
+      post "/api/v1/orders", params: {}, headers: auth_headers.merge("Idempotency-Key" => "test-key-1"), as: :json
 
       expect(response).to have_http_status(:bad_request)
     end

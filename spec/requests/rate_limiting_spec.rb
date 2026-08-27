@@ -38,4 +38,31 @@ RSpec.describe "Rate limiting", type: :request do
 
     expect(response).to have_http_status(:too_many_requests)
   end
+
+  it "throttles repeated API requests from the same IP even with a valid token" do
+    credential = create(:api_credential)
+    headers = { "Authorization" => "Bearer #{credential.token}" }
+
+    301.times { get "/api/v1/orders", headers: headers }
+
+    expect(response).to have_http_status(:too_many_requests)
+  end
+
+  it "throttles a single leaked token across many requests even as the IP rotates" do
+    credential = create(:api_credential)
+    headers = { "Authorization" => "Bearer #{credential.token}" }
+
+    301.times { |i| get "/api/v1/orders", headers: headers.merge("REMOTE_ADDR" => "10.0.#{i / 255}.#{i % 255}") }
+
+    expect(response).to have_http_status(:too_many_requests)
+  end
+
+  it "does not throttle a normal volume of API requests" do
+    credential = create(:api_credential)
+    headers = { "Authorization" => "Bearer #{credential.token}" }
+
+    10.times { get "/api/v1/orders", headers: headers }
+
+    expect(response).to have_http_status(:ok)
+  end
 end

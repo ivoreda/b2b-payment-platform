@@ -4,10 +4,9 @@ module Api
       before_action :set_order, only: :create
 
       def create
-        idempotency_key = request.headers["Idempotency-Key"].presence
-        return render_missing_idempotency_key unless idempotency_key
+        return render_missing_idempotency_key unless idempotency_key_header
 
-        result = Payments::Initiator.call(order: @order, idempotency_key: idempotency_key)
+        result = Payments::Initiator.call(order: @order, idempotency_key: idempotency_key_header)
         @payment = result.payment
 
         render :show, status: result.idempotent_replay ? :ok : :created
@@ -27,10 +26,6 @@ module Api
 
       def set_order
         @order = current_merchant.orders.find_by!(reference: params[:order_reference])
-      end
-
-      def render_missing_idempotency_key
-        render json: { error: "Idempotency-Key header is required" }, status: :bad_request
       end
     end
   end

@@ -1,0 +1,65 @@
+<% content_for :title, "API Credentials" %>
+
+<h1>API Credentials</h1>
+
+<% if flash[:api_token] %>
+  <div class="token-reveal">
+    <strong>Copy this token now &mdash; it won't be shown again:</strong>
+    <code><%= flash[:api_token] %></code>
+  </div>
+<% end %>
+
+<% if @new_credential&.errors&.any? %>
+  <ul class="field-errors">
+    <% @new_credential.errors.full_messages.each do |message| %>
+      <li><%= message %></li>
+    <% end %>
+  </ul>
+<% end %>
+
+<%= form_with model: (@new_credential || ApiCredential.new), url: dashboard_api_credentials_path do |form| %>
+  <div>
+    <%= form.label :name, "New credential name" %>
+    <%= form.text_field :name, placeholder: "e.g. Reviewer Key", required: true %>
+  </div>
+
+  <%= form.submit "Create Credential" %>
+<% end %>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Token</th>
+        <th>Created</th>
+        <th>Last used</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @api_credentials.each do |credential| %>
+        <tr>
+          <td><%= credential.name %></td>
+          <td><code>sk_&hellip;<%= credential.token_last_four %></code></td>
+          <td><%= credential.created_at.strftime("%b %-d, %Y") %></td>
+          <td><%= credential.last_used_at&.strftime("%b %-d, %Y %H:%M") || "Never" %></td>
+          <td>
+            <% if credential.revoked? %>
+              <span class="status status-revoked">Revoked</span>
+            <% else %>
+              <span class="status status-active">Active</span>
+            <% end %>
+          </td>
+          <td>
+            <% unless credential.revoked? %>
+              <%= button_to "Revoke", dashboard_api_credential_path(credential), method: :delete,
+                    form: { data: { turbo_confirm: "Revoke '#{credential.name}'? Anything using it will stop working immediately." } } %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

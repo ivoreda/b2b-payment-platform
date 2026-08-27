@@ -30,6 +30,7 @@ Rails.application.routes.draw do
     resources :orders, only: %i[index show new create], param: :reference do
       resources :payments, only: :create
     end
+    resources :api_credentials, only: %i[index create destroy]
   end
 
   # Defines the root path route ("/")

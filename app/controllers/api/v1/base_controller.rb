@@ -28,8 +28,16 @@ module Api
         current_api_credential&.merchant
       end
 
+      def idempotency_key_header
+        request.headers["Idempotency-Key"].presence
+      end
+
       def render_unauthorized
         render json: { error: "Unauthorized" }, status: :unauthorized
+      end
+
+      def render_missing_idempotency_key
+        render json: { error: "Idempotency-Key header is required" }, status: :bad_request
       end
 
       def render_not_found

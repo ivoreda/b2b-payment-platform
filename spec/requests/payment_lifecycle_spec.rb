@@ -15,7 +15,7 @@ RSpec.describe "Payment lifecycle", type: :request do
   def create_order(amount_cents:)
     post "/api/v1/orders",
          params: { order: { amount_cents: amount_cents, currency: "usd", customer_email: "buyer@example.com", customer_name: "Buyer Co" } },
-         headers: auth_headers, as: :json
+         headers: auth_headers.merge("Idempotency-Key" => SecureRandom.uuid), as: :json
     response.parsed_body["reference"]
   end
 

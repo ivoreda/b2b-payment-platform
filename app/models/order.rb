@@ -12,6 +12,7 @@ class Order < ApplicationRecord
   validates :amount_cents, presence: true, numericality: { only_integer: true, greater_than: 0 }
   validates :currency, presence: true, format: { with: /\A[A-Z]{3}\z/, message: "must be a 3-letter ISO currency code" }
   validates :customer_email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :idempotency_key, uniqueness: { scope: :merchant_id }, allow_nil: true
 
   scope :for_merchant, ->(merchant) { where(merchant: merchant) }
 

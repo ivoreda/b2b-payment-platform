@@ -13,6 +13,8 @@
 <% end %>
 
 <%= form_with model: @order, url: dashboard_orders_path do |form| %>
+  <%= form.hidden_field :idempotency_key, value: @order_idempotency_key %>
+
   <div>
     <%= form.label :amount, "Amount" %>
     <%= form.text_field :amount, value: params.dig(:order, :amount), placeholder: "50.00", required: true %>

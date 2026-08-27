@@ -52,6 +52,16 @@ module Payments
 
       result
     rescue ActiveRecord::RecordNotUnique
+      # The DB unique index caught a race the pre-check missed.
+      build_replay_result(order.merchant.payments.find_by!(idempotency_key: idempotency_key))
+    rescue ActiveRecord::RecordInvalid => e
+      # The same race can just as easily be caught by the model-level
+      # uniqueness validation instead of the DB index, depending on exactly
+      # how the two concurrent inserts interleave - both mean "already
+      # exists," so both are a replay. Re-raise anything else (e.g. an
+      # amount/currency mismatch) rather than masking it as one.
+      raise unless e.record.errors[:idempotency_key].present?
+
       build_replay_result(order.merchant.payments.find_by!(idempotency_key: idempotency_key))
     end
 

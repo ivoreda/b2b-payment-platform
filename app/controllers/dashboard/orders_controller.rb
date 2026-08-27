@@ -19,17 +19,24 @@ module Dashboard
 
     def new
       @order = current_merchant.orders.new(currency: "USD")
+      # Same double-click guard as the payment-initiation button: regenerated
+      # on every render of a fresh form, carried through unchanged on a
+      # validation-error re-render so retrying the same submission collapses
+      # into the same Orders::Creator call instead of minting a new key.
+      @order_idempotency_key = SecureRandom.uuid
     end
 
     def create
-      @order = current_merchant.orders.new(order_params)
-      @order.amount_cents = amount_cents_from_dollars(params[:order][:amount])
-
-      if @order.save
-        redirect_to dashboard_order_path(@order), notice: "Order created."
-      else
-        render :new, status: :unprocessable_content
-      end
+      result = Orders::Creator.call(
+        merchant: current_merchant,
+        idempotency_key: params[:order][:idempotency_key].presence || SecureRandom.uuid,
+        order_params: order_params.merge(amount_cents: amount_cents_from_dollars(params[:order][:amount]))
+      )
+      redirect_to dashboard_order_path(result.order), notice: "Order created."
+    rescue ActiveRecord::RecordInvalid => e
+      @order = e.record
+      @order_idempotency_key = params[:order][:idempotency_key]
+      render :new, status: :unprocessable_content
     end
 
     private

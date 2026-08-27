@@ -276,6 +276,8 @@ tbody tr:hover td {
 .status-failed { background: var(--color-danger-bg); color: var(--color-danger); }
 .status-pending, .status-processing, .status-awaiting_payment { background: var(--color-warning-bg); color: var(--color-warning); }
 .status-cancelled { background: var(--color-bg); color: var(--color-text-muted); }
+.status-active { background: var(--color-success-bg); color: var(--color-success); }
+.status-revoked { background: var(--color-bg); color: var(--color-text-muted); }
 
 /* Flash + errors */
 
@@ -303,6 +305,30 @@ tbody tr:hover td {
 .field-errors ul {
   margin: 0;
   padding-left: 1.1rem;
+}
+
+.token-reveal {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-left: 3px solid var(--color-warning);
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.token-reveal strong {
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.token-reveal code {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--color-surface);
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  word-break: break-all;
 }
 
 /* Forms */
@@ -374,6 +400,35 @@ input[type="password"]:focus {
 .auth-card input[type="submit"] {
   width: 100%;
   margin-top: 0.25rem;
+}
+
+.demo-hint {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.83rem;
+  color: var(--color-text-muted);
+}
+
+.demo-hint strong {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--color-text);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.demo-hint p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.demo-hint-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--color-bg);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
 }
 
 /* Order summary */

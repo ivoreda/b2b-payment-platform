@@ -26,13 +26,14 @@ bin/rails db:seed
 
 Seeding is idempotent — safe to run repeatedly — and prints a merchant API bearer token the **first** time it
 creates one (only shown once, since only its digest is ever persisted). If you've already seeded and lost the
-token, create a fresh one:
+token, create a fresh one from the dashboard (**API Credentials**, admin-only — see below) or via the console:
 
 ```bash
 bin/rails runner 'puts Merchant.find_by!(name: "Acme Test Merchant").api_credentials.create!(name: "New Key").token'
 ```
 
-**Dashboard login:** `demo@example.com` / `password123` at `http://localhost:3000/login`.
+**Dashboard login:** `demo@example.com` / `password123` at `http://localhost:3000/login` (also shown on the login
+page itself). The seeded user is an `admin`, so it can also reach **API Credentials** in the top nav.
 
 ## Running tests
 
@@ -69,24 +70,27 @@ All `/api/v1/*` endpoints require `Authorization: Bearer <token>` and return JSO
 shape: `{ "error": "<message>" }`, with an additional `"details": [...]` array for validation failures (422).
 Endpoints are scoped strictly to the authenticated merchant — a valid token from one merchant can never see or act
 on another merchant's orders/payments; asking for one returns a plain `404`, not a `403`, so a client can't even
-distinguish "not yours" from "doesn't exist."
+distinguish "not yours" from "doesn't exist." Every mutating (`POST`) endpoint is also rate-limited — 300 requests/
+minute per IP and, separately, per token, so a leaked credential can't be hammered just by rotating IPs.
 
 Set a token once for the examples below:
 
 ```bash
-export TOKEN=sk_...   # from db:seed output, or the runner snippet above
+export TOKEN=sk_...   # from db:seed output, the dashboard's API Credentials page, or the runner snippet above
 ```
 
 #### Create an order
 
 ```bash
 curl -s -X POST http://localhost:3000/api/v1/orders \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "Idempotency-Key: $(uuidgen)" \
   -d '{"order":{"amount_cents":5000,"currency":"usd","customer_email":"buyer@example.com","customer_name":"Buyer Co"}}'
 ```
 
 `amount_cents` is always an integer (never a float/decimal) and must be positive. `status` is not a client-settable
-field — orders always start `pending`.
+field — orders always start `pending`. Like payment initiation below, `Idempotency-Key` is **required** (400
+without it) and replaying the same key returns the original order (`200`) instead of creating a duplicate (`201`
+on first creation) — the same double-submit protection, applied consistently to every order-mutating action.
 
 #### List / fetch orders
 
@@ -153,9 +157,12 @@ curl -s -X POST http://localhost:3000/webhooks/payment_provider \
 ## Dashboard
 
 Server-rendered pages at `/dashboard/orders` (session login required, `/login`) — order list with each order's
-latest payment status, an order detail page with full payment + status history, and an "Initiate Payment" button
-that calls the exact same `Payments::Initiator` service the API uses. Every request is scoped through
-`current_merchant`, with the same cross-merchant `404` guarantee as the API.
+latest payment status, a "New Order" form, an order detail page with full payment + status history, and an
+"Initiate Payment" button that calls the exact same `Payments::Initiator` service the API uses. Every request is
+scoped through `current_merchant`, with the same cross-merchant `404` guarantee as the API.
+
+Admin users additionally get `/dashboard/api_credentials` to create and revoke API bearer tokens — the raw token
+is shown exactly once, right after creation, same one-time-reveal rule the API/seed path already follows.
 
 ## Design decisions worth knowing about
 
@@ -180,6 +187,14 @@ that calls the exact same `Payments::Initiator` service the API uses. Every requ
 - **`default_scope` is avoided everywhere** in favor of explicit `Model.for_merchant(merchant)` scopes /
   `current_merchant.orders.find_by!(...)` — a hidden, accidentally-bypassable global scope is exactly the kind of
   thing that causes a real cross-tenant data leak.
+- **Background jobs retry transient infrastructure failures** (`ApplicationJob`: `ActiveRecord::Deadlocked`,
+  `ActiveRecord::ConnectionNotEstablished`, `PG::ConnectionBad`, with backoff) but not business-logic failures —
+  `Payment::InvalidTransition` is caught and recorded inside the job itself, never raised into this retry path.
+  Without this, a transient DB hiccup while processing a webhook would strand that payment's status update
+  permanently in Solid Queue's failed-jobs table instead of resolving itself.
+- **`User#role` (`member`/`admin`) gates one thing: managing API credentials** (`/dashboard/api_credentials`) —
+  minting or revoking a bearer token is sensitive enough to restrict, unlike day-to-day order/payment work, which
+  any logged-in merchant user can do.
 
 See `app/models/payment.rb`, `app/services/payments/initiator.rb`, `app/services/webhooks/signature_verifier.rb`,
 and `app/controllers/webhooks/payment_provider_controller.rb` for the parts of the system with the most correctness

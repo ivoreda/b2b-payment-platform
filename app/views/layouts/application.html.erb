@@ -31,6 +31,9 @@
           Payment Platform
         <% end %>
         <div class="session-info">
+          <% if current_user.admin? %>
+            <%= link_to "API Credentials", dashboard_api_credentials_path %>
+          <% end %>
           <span><%= current_merchant.name %> &middot; <%= current_user.email %></span>
           <%= button_to "Log out", logout_path, method: :delete %>
         </div>
@@ -39,6 +42,7 @@
 
     <div class="page">
       <% flash.each do |type, message| %>
+        <% next if type == "api_token" %>
         <p class="flash flash-<%= type %>"><%= message %></p>
       <% end %>
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_26_010334) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_27_002417) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -40,10 +40,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_010334) do
     t.string "currency", limit: 3, null: false
     t.string "customer_email", null: false
     t.string "customer_name"
+    t.string "idempotency_key"
     t.bigint "merchant_id", null: false
     t.string "reference", null: false
     t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.index ["merchant_id", "idempotency_key"], name: "index_orders_on_merchant_id_and_idempotency_key", unique: true
     t.index ["merchant_id"], name: "index_orders_on_merchant_id"
     t.index ["reference"], name: "index_orders_on_reference", unique: true
     t.check_constraint "amount_cents > 0", name: "orders_amount_cents_positive"
