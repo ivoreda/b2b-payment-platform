@@ -1,6 +1,4 @@
-# Server-to-server API auth. The raw bearer token is generated once at
-# creation and exposed only in-memory via #token - only its SHA-256 digest
-# is ever persisted, so a database leak doesn't hand out usable credentials.
+# The raw bearer token is exposed only in-memory via #token; only its SHA-256 digest is ever persisted.
 class ApiCredential < ApplicationRecord
   belongs_to :merchant
 

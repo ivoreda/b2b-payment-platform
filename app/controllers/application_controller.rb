@@ -17,10 +17,7 @@ class ApplicationController < ActionController::Base
     current_user&.merchant
   end
 
-  # Also covers a merchant suspended mid-session, not just a suspended
-  # merchant's user logging in fresh: this runs on every dashboard request,
-  # not only at login, so suspension takes effect immediately rather than
-  # waiting for the current session to expire on its own.
+  # Runs on every request, not just login, so a mid-session suspension takes effect immediately.
   def require_login
     unless current_user
       redirect_to login_path, alert: "Please log in to continue."

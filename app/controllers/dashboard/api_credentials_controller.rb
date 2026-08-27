@@ -1,7 +1,5 @@
 module Dashboard
-  # API credentials grant full programmatic access to a merchant's account,
-  # so managing them (unlike everyday order/payment work) is admin-only -
-  # this is the one place User#role is actually enforced.
+  # The one place User#role is actually enforced - minting/revoking tokens is admin-only.
   class ApiCredentialsController < ApplicationController
     before_action :require_login
     before_action :require_admin
@@ -14,9 +12,7 @@ module Dashboard
       credential = current_merchant.api_credentials.new(credential_params)
 
       if credential.save
-        # The raw token only ever exists in memory on the instance that just
-        # created it - flash is the only way to carry it across the redirect
-        # for a one-time reveal. Never persisted, never logged.
+        # Flash is the only way to carry the raw token across the redirect for a one-time reveal.
         redirect_to dashboard_api_credentials_path, notice: "API credential '#{credential.name}' created."
         flash[:api_token] = credential.token
       else

@@ -1,5 +1,4 @@
-# Gives a model an opaque, non-sequential public identifier (e.g. "ord_a1b2c3...")
-# so IDs used in URLs/JSON never leak sequential database ids or order-of-creation.
+# Opaque public id (e.g. "ord_a1b2c3...") so URLs/JSON never leak sequential database ids.
 module HasReference
   extend ActiveSupport::Concern
 

@@ -1,9 +1,4 @@
-# The actual "accept a payment provider notification" logic, shared by two
-# callers: Webhooks::PaymentProviderController (a real inbound HTTP
-# request) and MockPaymentProvider::ProcessChargeJob (our simulated
-# provider "calling back" in-process). Both go through the exact same
-# verify -> dedupe -> enqueue path - the mock provider doesn't get a
-# shortcut around signature verification just because it's internal.
+# Shared by the real webhook controller and the mock provider's simulated callback - same verify -> dedupe -> enqueue path either way.
 module Webhooks
   class PaymentProviderProcessor
     Result = Struct.new(:status, :body, keyword_init: true)
@@ -19,9 +14,7 @@ module Webhooks
       @signature_header = signature_header
     end
 
-    # Deliberately does no DB writes at all on an invalid signature - we
-    # don't trust the payload enough to even log its parsed contents until
-    # we've verified who it's actually from.
+    # No DB writes at all on an invalid signature.
     def call
       return unauthorized unless valid_signature?
 
@@ -44,13 +37,10 @@ module Webhooks
 
       ok
     rescue ActiveRecord::RecordNotUnique
-      # Genuine race: two deliveries' uniqueness checks both passed before
-      # either committed, and the DB unique index caught it. Same meaning
-      # as the RecordInvalid case below: already received.
+      # Two deliveries raced past the uniqueness check; the DB index caught it.
       ok
     rescue ActiveRecord::RecordInvalid => e
-      # The common case: the model-level uniqueness validation already
-      # caught a redelivered provider_event_id before it hit the DB.
+      # The model-level uniqueness validation caught a redelivered provider_event_id first.
       raise unless e.record.errors[:provider_event_id].present?
 
       ok

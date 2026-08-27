@@ -1,13 +1,7 @@
 module Payments
-  # Creates a Payment against an Order and transitions the Order out of
-  # `pending`, all under a row lock so concurrent initiation attempts on the
-  # same order can't both slip past the "is this order payable" check.
-  #
-  # Idempotency-Key handling is intentionally two-layered: the in-transaction
-  # lookup handles the common case cheaply, while rescuing the unique-index
-  # violation on (merchant_id, idempotency_key) covers the race where two
-  # concurrent requests for *different* orders under the same merchant reuse
-  # the same key - a plain row lock on one order can't serialize against that.
+  # Creates a Payment and moves the Order out of `pending` under a row lock. Idempotency-Key is checked
+  # both in-transaction and via the (merchant_id, idempotency_key) unique index, since a lock on one order
+  # can't serialize against a race across two different orders.
   class Initiator
     Result = Struct.new(:payment, :idempotent_replay, keyword_init: true)
 
@@ -44,10 +38,7 @@ module Payments
         Result.new(payment: payment, idempotent_replay: false)
       end
 
-      # Only kick off the (simulated) charge for a genuinely new payment, and
-      # only once the transaction above has actually committed - enqueuing
-      # from inside an open transaction risks the job running before the
-      # row it needs is visible.
+      # Only for a genuinely new payment, and only after the transaction above has committed.
       MockPaymentProvider.charge(result.payment) unless result.idempotent_replay
 
       result
@@ -55,11 +46,7 @@ module Payments
       # The DB unique index caught a race the pre-check missed.
       build_replay_result(order.merchant.payments.find_by!(idempotency_key: idempotency_key))
     rescue ActiveRecord::RecordInvalid => e
-      # The same race can just as easily be caught by the model-level
-      # uniqueness validation instead of the DB index, depending on exactly
-      # how the two concurrent inserts interleave - both mean "already
-      # exists," so both are a replay. Re-raise anything else (e.g. an
-      # amount/currency mismatch) rather than masking it as one.
+      # Same race, caught by the model validation instead of the DB index.
       raise unless e.record.errors[:idempotency_key].present?
 
       build_replay_result(order.merchant.payments.find_by!(idempotency_key: idempotency_key))

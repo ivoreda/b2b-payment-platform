@@ -1,7 +1,4 @@
-# Self-service merchant signup. Creates a brand-new Merchant together with
-# its first User (always `admin` - there's no one else yet to have granted
-# that role) and one API credential, so a merchant leaves this flow with
-# every kind of access already usable, not just a dashboard login.
+# Self-service signup: creates a Merchant, its first (admin) User, and one API credential together.
 class RegistrationsController < ApplicationController
   before_action :redirect_if_logged_in, only: %i[new create]
 
@@ -38,9 +35,7 @@ class RegistrationsController < ApplicationController
     params.require(:merchant).permit(:name)
   end
 
-  # Deliberately excludes :role - always server-set to :admin above, never
-  # client-controlled, for the same reason Order#status is never permitted
-  # from client params.
+  # :role excluded - always server-set to :admin above, never client-controlled.
   def user_params
     params.require(:user).permit(:email, :password, :password_confirmation)
   end

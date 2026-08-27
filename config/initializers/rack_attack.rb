@@ -1,11 +1,4 @@
-# Rate limiting for the two endpoints that don't already require a valid
-# bearer token: login (credential-stuffing/brute-force target) and the
-# webhook intake (a public, unauthenticated-by-session POST endpoint). Plus
-# the bearer-token-authenticated API itself - a leaked token or a buggy
-# client can still generate abusive traffic even though it's authenticated.
-# Disabled in test by default so the rest of the suite isn't at the mercy
-# of shared throttle state; specs that actually exercise this re-enable it
-# explicitly and reset the cache around themselves.
+# Disabled in test by default; specs that exercise this re-enable it and reset the cache around themselves.
 class Rack::Attack
   throttle("logins/ip", limit: 10, period: 1.minute) do |request|
     request.ip if request.post? && request.path == "/login"
@@ -15,26 +8,17 @@ class Rack::Attack
     request.ip if request.post? && request.path == "/webhooks/payment_provider"
   end
 
-  # Signup creates a new Merchant + User + ApiCredential per request, unlike
-  # login which just checks a password against an existing one - a much
-  # tighter limit than logins/ip, since legitimate use is "once per person,"
-  # not a repeated-attempt flow.
+  # Tighter than logins/ip - legitimate signup is once per person, not a repeated-attempt flow.
   throttle("signups/ip", limit: 5, period: 1.minute) do |request|
     request.ip if request.post? && request.path == "/signup"
   end
 
-  # A per-IP floor catches an unauthenticated flood (bad/no token) before it
-  # ever reaches the controller. Generous relative to login/webhooks since a
-  # legitimate integration can burst - this is an abuse backstop, not a
-  # per-client fairness quota.
+  # An abuse backstop for unauthenticated floods, generous enough for a legitimate integration's bursts.
   throttle("api/ip", limit: 300, period: 1.minute) do |request|
     request.ip if request.path.start_with?("/api/")
   end
 
-  # A per-token cap on top of the IP one: a single leaked or misbehaving
-  # credential shouldn't be able to hammer the API just by rotating IPs.
-  # Keyed on a digest, not the raw token, so a live credential never sits in
-  # the rate-limit cache in reusable form.
+  # Per-token cap on top of the IP one, keyed on a digest so a live token never sits in the cache in reusable form.
   throttle("api/token", limit: 300, period: 1.minute) do |request|
     next unless request.path.start_with?("/api/")
 

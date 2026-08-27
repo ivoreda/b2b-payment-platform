@@ -1,7 +1,4 @@
-# Append-only audit trail of every status change a Payment goes through,
-# regardless of source (webhook today; API/system in principle later). This
-# is what a dashboard's "payment history" view would read from - distinct
-# from WebhookEvent, which logs the raw inbound notifications themselves.
+# Append-only audit trail of every Payment status change, distinct from the raw WebhookEvent log.
 class PaymentEvent < ApplicationRecord
   belongs_to :payment
   belongs_to :webhook_event, optional: true

@@ -10,19 +10,13 @@ module Dashboard
       @order = current_merchant.orders.find_by!(reference: params[:reference])
       @payments = @order.payments.order(created_at: :desc)
       @payment_events = PaymentEvent.where(payment: @payments).includes(:payment).order(created_at: :desc)
-      # Regenerated on every render of this page (not tied to the order or
-      # session), so a genuine reload/revisit gets a fresh key while a
-      # double-click on the same rendered form submits the same key twice -
-      # which Payments::Initiator already collapses into a single payment.
+      # A double-click resubmit reuses this key; Payments::Initiator collapses it into one payment.
       @payment_idempotency_key = SecureRandom.uuid
     end
 
     def new
       @order = current_merchant.orders.new(currency: "USD")
-      # Same double-click guard as the payment-initiation button: regenerated
-      # on every render of a fresh form, carried through unchanged on a
-      # validation-error re-render so retrying the same submission collapses
-      # into the same Orders::Creator call instead of minting a new key.
+      # Same double-click guard as payment initiation.
       @order_idempotency_key = SecureRandom.uuid
     end
 
@@ -41,15 +35,12 @@ module Dashboard
 
     private
 
-    # Deliberately excludes :status - same rule as the API: orders always
-    # start `pending`, never client-settable.
+    # :status excluded - orders always start pending, never client-settable.
     def order_params
       params.require(:order).permit(:currency, :customer_email, :customer_name)
     end
 
-    # The form takes a human dollar amount ("50.00"); the model only knows
-    # cents. BigDecimal avoids the float-precision drift a plain `.to_f * 100`
-    # risks (e.g. 19.99 * 100 landing on 1998.9999999999998).
+    # BigDecimal avoids the float-precision drift a plain `.to_f * 100` risks.
     def amount_cents_from_dollars(dollars)
       return nil if dollars.blank?
 

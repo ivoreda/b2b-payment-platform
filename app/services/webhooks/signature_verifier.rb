@@ -1,10 +1,5 @@
-# Stripe-style webhook signing: header is "t=<unix_ts>,v1=<hmac>", where the
-# hmac covers "<timestamp>.<raw body>". Binding the timestamp into the signed
-# material (not just checking it separately) means a captured, genuinely
-# valid signature can't be replayed indefinitely - it's only valid within
-# TOLERANCE of when it was generated. This class both verifies (the
-# controller) and generates (the mock provider, and specs) since both sides
-# need to agree on the exact same scheme and secret.
+# Stripe-style webhook signing: "t=<unix_ts>,v1=<hmac>" over "<timestamp>.<raw body>",
+# so a captured signature is only replayable within TOLERANCE of when it was generated.
 module Webhooks
   class SignatureVerifier
     TOLERANCE = 5.minutes

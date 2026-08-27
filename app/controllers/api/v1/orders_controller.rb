@@ -30,9 +30,7 @@ module Api
 
       private
 
-      # Deliberately excludes :status - order status is only ever changed by
-      # our own domain logic (payment initiation/webhooks), never directly by
-      # a client request.
+      # :status excluded - orders always start pending, never client-settable.
       def order_params
         params.require(:order).permit(:amount_cents, :currency, :customer_email, :customer_name)
       end

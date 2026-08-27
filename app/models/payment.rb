@@ -21,14 +21,8 @@ class Payment < ApplicationRecord
 
   scope :for_merchant, ->(merchant) { where(merchant: merchant) }
 
-  # These three are the only ways a Payment's status is ever allowed to
-  # change after creation. Each is idempotent-safe (a redelivered or
-  # out-of-order notification for a status the payment is already at, or
-  # already past, is a silent no-op) but raises on a genuine contradiction
-  # (e.g. a "succeeded" notification for a payment already marked
-  # "failed") rather than silently overwriting a terminal outcome - that
-  # case indicates either a provider bug or a forged webhook, and both
-  # deserve investigation rather than being swallowed.
+  # The only three ways a Payment's status may change after creation. Each is a no-op on a
+  # redelivered/out-of-order notification but raises on a genuine contradiction (e.g. "succeeded" after "failed").
 
   def mark_processing!(webhook_event: nil)
     with_lock do

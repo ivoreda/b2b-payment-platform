@@ -1,10 +1,5 @@
 module Orders
-  # Mirrors Payments::Initiator's idempotency handling: a client retrying a
-  # timed-out POST (a network blip, a client-side retry) must not create a
-  # second order. Unlike a payment, there's no parent row to lock against
-  # here - the unique index on (merchant_id, idempotency_key) is the sole
-  # guard against the race where two concurrent requests for the same key
-  # both pass the initial lookup before either commits.
+  # No parent row to lock here, so the (merchant_id, idempotency_key) unique index is the sole race guard.
   class Creator
     Result = Struct.new(:order, :idempotent_replay, keyword_init: true)
 
@@ -28,11 +23,7 @@ module Orders
       # The DB unique index caught a race the pre-check missed.
       build_replay_result(merchant.orders.find_by!(idempotency_key: idempotency_key))
     rescue ActiveRecord::RecordInvalid => e
-      # The same race can just as easily be caught by the model-level
-      # uniqueness validation instead of the DB index, depending on exactly
-      # how the two concurrent inserts interleave - both mean "already
-      # exists," so both are a replay. Re-raise anything else (e.g. a
-      # genuinely invalid amount) rather than masking it as one.
+      # Same race, caught by the model validation instead of the DB index.
       raise unless e.record.errors[:idempotency_key].present?
 
       build_replay_result(merchant.orders.find_by!(idempotency_key: idempotency_key))

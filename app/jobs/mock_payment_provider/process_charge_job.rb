@@ -1,7 +1,5 @@
 module MockPaymentProvider
-  # The "async notification arriving" half of the simulated gateway.
-  # Builds a genuinely signed payload and feeds it through the same
-  # processor a real inbound webhook request would go through.
+  # Signs a payload and feeds it through the same processor a real inbound webhook would hit.
   class ProcessChargeJob < ApplicationJob
     queue_as :default
 

@@ -1,8 +1,4 @@
-# Does the actual state-transition work for a received webhook, off the
-# request/response cycle. Safe to run more than once for the same
-# WebhookEvent (e.g. a Solid Queue retry after a worker crash): the guard at
-# the top makes a second run a no-op, and even without that guard, Payment's
-# mark_succeeded!/mark_failed! are themselves idempotent.
+# Safe to run twice for the same WebhookEvent - the guard below and Payment's own transitions are both idempotent.
 class ProcessWebhookEventJob < ApplicationJob
   queue_as :default
 
@@ -37,9 +33,7 @@ class ProcessWebhookEventJob < ApplicationJob
 
     webhook_event.update!(status: :processed)
   rescue Payment::InvalidTransition => e
-    # A genuine terminal-state contradiction (e.g. "succeeded" for an
-    # already-failed payment) - not something a retry can fix, so we record
-    # it for investigation instead of re-raising into Solid Queue's retry loop.
+    # Not retryable, so record it instead of raising into Solid Queue's retry loop.
     webhook_event.update!(status: :failed, error_message: e.message)
   end
 end

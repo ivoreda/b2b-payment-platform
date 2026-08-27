@@ -1,7 +1,4 @@
-# Append-only log of every inbound payment-provider notification, keyed
-# uniquely on (provider, provider_event_id) so a redelivered webhook is a
-# cheap, safe no-op at the intake layer - the real idempotency guarantee
-# lives one layer deeper, in Payment's transition methods.
+# Append-only log of inbound provider notifications, deduped on (provider, provider_event_id).
 class WebhookEvent < ApplicationRecord
   belongs_to :payment, optional: true
   has_many :payment_events, dependent: :nullify
