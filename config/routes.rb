@@ -13,6 +13,9 @@ Rails.application.routes.draw do
   post "login", to: "sessions#create"
   delete "logout", to: "sessions#destroy"
 
+  get "signup", to: "registrations#new"
+  post "signup", to: "registrations#create"
+
   namespace :webhooks do
     post "payment_provider", to: "payment_provider#create"
   end

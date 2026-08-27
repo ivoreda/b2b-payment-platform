@@ -1,0 +1,44 @@
+<% content_for :title, "Sign up" %>
+
+<div class="auth-shell">
+  <div class="auth-card">
+    <h1>Create your account</h1>
+
+    <% if @merchant.errors.any? || @user.errors.any? %>
+      <ul class="field-errors">
+        <% (@merchant.errors.full_messages + @user.errors.full_messages).each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    <% end %>
+
+    <%= form_with url: signup_path, method: :post do %>
+      <div>
+        <%= label_tag "merchant_name", "Company name" %>
+        <%= text_field_tag "merchant[name]", @merchant.name, id: "merchant_name", required: true, autofocus: true %>
+      </div>
+
+      <div>
+        <%= label_tag "user_email", "Email" %>
+        <%= email_field_tag "user[email]", @user.email, id: "user_email", required: true %>
+      </div>
+
+      <div>
+        <%= label_tag "user_password", "Password" %>
+        <%= password_field_tag "user[password]", nil, id: "user_password", required: true %>
+      </div>
+
+      <div>
+        <%= label_tag "user_password_confirmation", "Confirm password" %>
+        <%= password_field_tag "user[password_confirmation]", nil, id: "user_password_confirmation", required: true %>
+      </div>
+
+      <%= submit_tag "Create account" %>
+    <% end %>
+
+    <div class="demo-hint">
+      <strong>Already have an account?</strong>
+      <p><%= link_to "Log in", login_path %></p>
+    </div>
+  </div>
+</div>

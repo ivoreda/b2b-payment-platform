@@ -32,4 +32,8 @@ class ApplicationController < ActionController::Base
       redirect_to login_path, alert: "This merchant account has been suspended."
     end
   end
+
+  def redirect_if_logged_in
+    redirect_to root_path if current_user
+  end
 end

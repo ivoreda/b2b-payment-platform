@@ -21,10 +21,4 @@ class SessionsController < ApplicationController
     reset_session
     redirect_to login_path, notice: "Logged out."
   end
-
-  private
-
-  def redirect_if_logged_in
-    redirect_to root_path if current_user
-  end
 end

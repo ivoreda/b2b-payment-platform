@@ -156,6 +156,11 @@ curl -s -X POST http://localhost:3000/webhooks/payment_provider \
 
 ## Dashboard
 
+New merchants can self-register at `/signup` (linked from `/login`) — company name, email, password. This creates
+the `Merchant`, its first `User` (always `admin`, since there's no one else yet to have granted that role), and one
+API credential together in a transaction, logs the new user straight in, and reveals that credential's token once,
+the same one-time-reveal rule every other token creation path follows.
+
 Server-rendered pages at `/dashboard/orders` (session login required, `/login`) — order list with each order's
 latest payment status, a "New Order" form, an order detail page with full payment + status history, and an
 "Initiate Payment" button that calls the exact same `Payments::Initiator` service the API uses. Every request is

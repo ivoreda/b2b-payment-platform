@@ -65,4 +65,15 @@ RSpec.describe "Rate limiting", type: :request do
 
     expect(response).to have_http_status(:ok)
   end
+
+  it "throttles repeated signups from the same IP" do
+    6.times do |i|
+      post signup_path, params: {
+        merchant: { name: "Flood Co #{i}" },
+        user: { email: "flood#{i}@example.com", password: "password123", password_confirmation: "password123" }
+      }
+    end
+
+    expect(response).to have_http_status(:too_many_requests)
+  end
 end

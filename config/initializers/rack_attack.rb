@@ -15,6 +15,14 @@ class Rack::Attack
     request.ip if request.post? && request.path == "/webhooks/payment_provider"
   end
 
+  # Signup creates a new Merchant + User + ApiCredential per request, unlike
+  # login which just checks a password against an existing one - a much
+  # tighter limit than logins/ip, since legitimate use is "once per person,"
+  # not a repeated-attempt flow.
+  throttle("signups/ip", limit: 5, period: 1.minute) do |request|
+    request.ip if request.post? && request.path == "/signup"
+  end
+
   # A per-IP floor catches an unauthenticated flood (bad/no token) before it
   # ever reaches the controller. Generous relative to login/webhooks since a
   # legitimate integration can burst - this is an abuse backstop, not a
