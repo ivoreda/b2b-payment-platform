@@ -2,37 +2,41 @@
 
 <h1>Orders</h1>
 
+<%= link_to "New Order", new_dashboard_order_path, class: "btn-link" %>
+
 <% if @orders.empty? %>
-  <p>No orders yet.</p>
+  <p class="empty-state">No orders yet.</p>
 <% else %>
-  <table>
-    <thead>
-      <tr>
-        <th>Reference</th>
-        <th>Customer</th>
-        <th>Amount</th>
-        <th>Order Status</th>
-        <th>Latest Payment</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @orders.each do |order| %>
+  <div class="card">
+    <table>
+      <thead>
         <tr>
-          <td><%= order.reference %></td>
-          <td><%= order.customer_name %></td>
-          <td><%= money(order.amount_cents, order.currency) %></td>
-          <td><%= status_badge(order.status) %></td>
-          <td>
-            <% if (payment = order.latest_payment) %>
-              <%= status_badge(payment.status) %>
-            <% else %>
-              &mdash;
-            <% end %>
-          </td>
-          <td><%= link_to "View", dashboard_order_path(order) %></td>
+          <th>Reference</th>
+          <th>Customer</th>
+          <th>Amount</th>
+          <th>Order Status</th>
+          <th>Latest Payment</th>
+          <th></th>
         </tr>
-      <% end %>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        <% @orders.each do |order| %>
+          <tr>
+            <td><%= order.reference %></td>
+            <td><%= order.customer_name %></td>
+            <td><%= money(order.amount_cents, order.currency) %></td>
+            <td><%= status_badge(order.status) %></td>
+            <td>
+              <% if (payment = order.latest_payment) %>
+                <%= status_badge(payment.status) %>
+              <% else %>
+                &mdash;
+              <% end %>
+            </td>
+            <td><%= link_to "View", dashboard_order_path(order) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
 <% end %>

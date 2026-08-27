@@ -27,7 +27,7 @@ Rails.application.routes.draw do
   end
 
   namespace :dashboard do
-    resources :orders, only: %i[index show], param: :reference do
+    resources :orders, only: %i[index show new create], param: :reference do
       resources :payments, only: :create
     end
   end

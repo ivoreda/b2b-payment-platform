@@ -1,0 +1,37 @@
+<% content_for :title, "New Order" %>
+
+<%= link_to "&larr; All orders".html_safe, dashboard_orders_path, class: "back-link" %>
+
+<h1>New Order</h1>
+
+<% if @order.errors.any? %>
+  <ul class="field-errors">
+    <% @order.errors.full_messages.each do |message| %>
+      <li><%= message %></li>
+    <% end %>
+  </ul>
+<% end %>
+
+<%= form_with model: @order, url: dashboard_orders_path do |form| %>
+  <div>
+    <%= form.label :amount, "Amount" %>
+    <%= form.text_field :amount, value: params.dig(:order, :amount), placeholder: "50.00", required: true %>
+  </div>
+
+  <div>
+    <%= form.label :currency %>
+    <%= form.text_field :currency, value: @order.currency, maxlength: 3, required: true %>
+  </div>
+
+  <div>
+    <%= form.label :customer_name %>
+    <%= form.text_field :customer_name %>
+  </div>
+
+  <div>
+    <%= form.label :customer_email %>
+    <%= form.email_field :customer_email, required: true %>
+  </div>
+
+  <%= form.submit "Create Order" %>
+<% end %>

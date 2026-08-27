@@ -1,13 +1,20 @@
 <% content_for :title, "Order #{@order.reference}" %>
 
-<p><%= link_to "&larr; All orders".html_safe, dashboard_orders_path %></p>
+<%= link_to "&larr; All orders".html_safe, dashboard_orders_path, class: "back-link" %>
 
 <h1>Order <%= @order.reference %></h1>
 
-<p>
-  <%= @order.customer_name %> &lt;<%= @order.customer_email %>&gt;<br>
-  <%= money(@order.amount_cents, @order.currency) %> &middot; <%= status_badge(@order.status) %>
-</p>
+<div class="card summary-card">
+  <div>
+    <div class="customer">
+      <%= @order.customer_name %> <span class="customer-email">&lt;<%= @order.customer_email %>&gt;</span>
+    </div>
+  </div>
+  <div>
+    <span class="amount"><%= money(@order.amount_cents, @order.currency) %></span>
+    <%= status_badge(@order.status) %>
+  </div>
+</div>
 
 <% if @order.pending? || @order.awaiting_payment? %>
   <%= button_to "Initiate Payment",
@@ -18,35 +25,37 @@
 
 <h2>Payments</h2>
 <% if @payments.empty? %>
-  <p>No payments initiated yet.</p>
+  <p class="empty-state">No payments initiated yet.</p>
 <% else %>
-  <table>
-    <thead>
-      <tr>
-        <th>Reference</th>
-        <th>Status</th>
-        <th>Provider Reference</th>
-        <th>Failure Reason</th>
-        <th>Initiated</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @payments.each do |payment| %>
+  <div class="card">
+    <table>
+      <thead>
         <tr>
-          <td><%= payment.reference %></td>
-          <td><%= status_badge(payment.status) %></td>
-          <td><%= payment.provider_reference || "&mdash;".html_safe %></td>
-          <td><%= payment.failure_reason || "&mdash;".html_safe %></td>
-          <td><%= payment.created_at.strftime("%b %-d, %Y %H:%M") %></td>
+          <th>Reference</th>
+          <th>Status</th>
+          <th>Provider Reference</th>
+          <th>Failure Reason</th>
+          <th>Initiated</th>
         </tr>
-      <% end %>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        <% @payments.each do |payment| %>
+          <tr>
+            <td><%= payment.reference %></td>
+            <td><%= status_badge(payment.status) %></td>
+            <td><%= payment.provider_reference || "&mdash;".html_safe %></td>
+            <td><%= payment.failure_reason || "&mdash;".html_safe %></td>
+            <td><%= payment.created_at.strftime("%b %-d, %Y %H:%M") %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
 <% end %>
 
 <h2>History</h2>
 <% if @payment_events.empty? %>
-  <p>No status changes yet.</p>
+  <p class="empty-state">No status changes yet.</p>
 <% else %>
   <ul class="history-list">
     <% @payment_events.each do |event| %>
