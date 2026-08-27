@@ -195,6 +195,11 @@ is shown exactly once, right after creation, same one-time-reveal rule the API/s
 - **`User#role` (`member`/`admin`) gates one thing: managing API credentials** (`/dashboard/api_credentials`) —
   minting or revoking a bearer token is sensitive enough to restrict, unlike day-to-day order/payment work, which
   any logged-in merchant user can do.
+- **A suspended `Merchant` (`status: suspended`) is locked out everywhere, immediately** — the API returns `403`
+  (distinct from `401`, since the credential itself is still genuinely valid) on every request, and the dashboard
+  session is reset and redirected to login on the very next request, not just at the next fresh login. Checked in
+  `Api::V1::BaseController#authenticate_merchant!` and `ApplicationController#require_login` respectively, so
+  suspension takes effect mid-session rather than waiting for a token/cookie to naturally expire.
 
 See `app/models/payment.rb`, `app/services/payments/initiator.rb`, `app/services/webhooks/signature_verifier.rb`,
 and `app/controllers/webhooks/payment_provider_controller.rb` for the parts of the system with the most correctness
